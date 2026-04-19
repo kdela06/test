@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import TestViewer from './TestViewer';
+import TestViewer from './TestViewer';           // <-- Tu visor de Tests
+import FlashcardViewer from './FlashcardViewer'; // <-- Tu visor de Flashcards
 import JSZip from 'jszip';
 import { get, set } from 'idb-keyval';
 import './App.css';
@@ -11,49 +12,51 @@ const IcoPlus = ({ size = 16, color = "currentColor" }) => <svg width={size} hei
 const IcoTrash = ({ size = 18, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
 const IcoPlay = ({ size = 18, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
 const IcoBack = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+const IcoCards = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+const IcoTest = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 13h6"></path><path d="M9 17h6"></path><path d="M9 9h1"></path></svg>;
 
 function App() {
-  const [testsGuardados, setTestsGuardados] = useState([]);
+  const [archivosGuardados, setArchivosGuardados] = useState([]);
   const [carpetas, setCarpetas] = useState([]);
   const [carpetaActiva, setCarpetaActiva] = useState(null); 
-  const [testActivo, setTestActivo] = useState(null);
+  const [archivoActivo, setArchivoActivo] = useState(null);
   const [cargando, setCargando] = useState(true);
 
   // --- PALETA NEUTRA: VERDE SALVIA Y TONOS TIERRA ---
   const stylesApp = {
     letra: "'Nunito', 'Quicksand', 'Segoe UI', sans-serif", 
-    principal: '#6B8E6B',             // Verde Salvia Apagado (Elegante y relaja la vista)
-    secundario: '#F2F5F2',            // Verde-crema ultraclaro para fondos de acento
-    fondoHeader: '#FFFFFF',           // Cabecera limpia
-    headerText: '#3A3F3A',            // Gris verdoso oscuro (casi negro)
-    fondoBody: '#F8F9F8',             // Blanco hueso / Arena muy claro
+    principal: '#6B8E6B',             
+    secundario: '#F2F5F2',            
+    fondoHeader: '#FFFFFF',           
+    headerText: '#3A3F3A',            
+    fondoBody: '#F8F9F8',             
     cardBg: '#FFFFFF',
-    texto: '#4A4F4A',                 // Gris oscuro cálido para lectura
-    textoApagado: '#8C938C',          // Gris medio
-    borde: '#E4E7E4',                 // Bordes suaves
-    danger: '#C68B59'                 // Ocre / Arcilla para borrar (huye del rojo chillón)
+    texto: '#4A4F4A',                 
+    textoApagado: '#8C938C',          
+    borde: '#E4E7E4',                 
+    danger: '#C68B59'                 
   };
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const tests = await get('mi_biblioteca_tests') || [];
-      const folders = await get('mi_biblioteca_carpetas') || [];
-      const testsAdaptados = tests.map(t => t.carpetaId !== undefined ? t : { ...t, carpetaId: null });
-      setTestsGuardados(testsAdaptados);
+      const archivos = await get('mi_biblioteca_unificada') || [];
+      const folders = await get('mi_biblioteca_carpetas_unificada') || [];
+      const archivosAdaptados = archivos.map(a => a.carpetaId !== undefined ? a : { ...a, carpetaId: null });
+      setArchivosGuardados(archivosAdaptados);
       setCarpetas(folders);
       setCargando(false);
     };
     cargarDatos();
   }, []);
 
-  const guardarTests = async (nuevosTests) => {
-    setTestsGuardados(nuevosTests);
-    await set('mi_biblioteca_tests', nuevosTests);
+  const guardarArchivos = async (nuevos) => {
+    setArchivosGuardados(nuevos);
+    await set('mi_biblioteca_unificada', nuevos);
   };
 
   const guardarCarpetas = async (nuevasCarpetas) => {
     setCarpetas(nuevasCarpetas);
-    await set('mi_biblioteca_carpetas', nuevasCarpetas);
+    await set('mi_biblioteca_carpetas_unificada', nuevasCarpetas);
   };
 
   const crearCarpeta = async () => {
@@ -65,83 +68,115 @@ function App() {
 
   const eliminarCarpeta = async (id, e) => {
     e.stopPropagation();
-    if (window.confirm("¿Seguro que quieres eliminar esta carpeta? Los tests en su interior se moverán a la raíz.")) {
-      const testsActualizados = testsGuardados.map(t => t.carpetaId === id ? { ...t, carpetaId: null } : t);
-      await guardarTests(testsActualizados);
+    if (window.confirm("¿Seguro que quieres eliminar esta carpeta? Los archivos en su interior se moverán a la raíz.")) {
+      const actualizados = archivosGuardados.map(a => a.carpetaId === id ? { ...a, carpetaId: null } : a);
+      await guardarArchivos(actualizados);
       await guardarCarpetas(carpetas.filter(c => c.id !== id));
     }
   };
 
-  const cambiarTestDeCarpeta = async (testId, nuevoCarpetaId, e) => {
+  const cambiarArchivoDeCarpeta = async (archivoId, nuevoCarpetaId, e) => {
     e.stopPropagation();
     const idFinal = nuevoCarpetaId === "root" ? null : nuevoCarpetaId;
-    const actualizados = testsGuardados.map(t => t.id === testId ? { ...t, carpetaId: idFinal } : t);
-    await guardarTests(actualizados);
+    const actualizados = archivosGuardados.map(a => a.id === archivoId ? { ...a, carpetaId: idFinal } : a);
+    await guardarArchivos(actualizados);
   };
 
+  // IMPORTACIÓN UNIFICADA
   const handleFileUpload = async (event) => {
     const files = event.target.files;
     if (!files.length) return;
     setCargando(true);
-    let nuevos = [...testsGuardados];
+    let nuevos = [...archivosGuardados];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.name.toLowerCase().endsWith('.zip')) {
+      const nombreMin = file.name.toLowerCase();
+
+      if (nombreMin.endsWith('.zip')) {
         try {
           const zip = new JSZip();
           const contents = await zip.loadAsync(file);
           for (const [filename, zipEntry] of Object.entries(contents.files)) {
-            if (!zipEntry.dir && filename.endsWith('.test')) {
+            const zName = filename.toLowerCase();
+            if (!zipEntry.dir && (zName.endsWith('.cards') || zName.endsWith('.flash') || zName.endsWith('.test'))) {
               const content = await zipEntry.async("text");
-              nuevos.push({ id: 'test_' + Date.now() + Math.random(), nombre: filename, contenido: content, carpetaId: carpetaActiva });
+              nuevos.push({ id: 'doc_' + Date.now() + Math.random(), nombre: filename, contenido: content, carpetaId: carpetaActiva });
             }
           }
         } catch (e) { alert("Error leyendo ZIP."); }
-      } else if (file.name.toLowerCase().endsWith('.test')) {
+      } 
+      else if (nombreMin.endsWith('.cards') || nombreMin.endsWith('.flash') || nombreMin.endsWith('.test')) {
         try {
           const text = await file.text();
-          nuevos.push({ id: 'test_' + Date.now() + Math.random(), nombre: file.name, contenido: text, carpetaId: carpetaActiva });
+          nuevos.push({ id: 'doc_' + Date.now() + Math.random(), nombre: file.name, contenido: text, carpetaId: carpetaActiva });
         } catch (e) { console.error(e); }
       }
     }
-    await guardarTests(nuevos);
+    await guardarArchivos(nuevos);
     setCargando(false);
     event.target.value = ''; 
   };
 
-  const eliminarTest = async (id, e) => {
+  const crearMazoVacio = async () => {
+    const nombre = window.prompt("Nombre del nuevo mazo:");
+    if (!nombre || !nombre.trim()) return;
+    const plantilla = JSON.stringify({ titulo: nombre.trim(), tarjetas: [] }, null, 2);
+    const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.cards', contenido: plantilla, carpetaId: carpetaActiva }];
+    await guardarArchivos(nuevos);
+  };
+
+  const crearTestVacio = async () => {
+    const nombre = window.prompt("Nombre del nuevo test:");
+    if (!nombre || !nombre.trim()) return;
+    const plantilla = JSON.stringify({ titulo: nombre.trim(), preguntas: [] }, null, 2);
+    const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.test', contenido: plantilla, carpetaId: carpetaActiva }];
+    await guardarArchivos(nuevos);
+  };
+
+  const eliminarArchivo = async (id, e) => {
     e.stopPropagation();
-    if (window.confirm("¿Seguro que quieres eliminar este test?")) {
-      await guardarTests(testsGuardados.filter(t => t.id !== id));
+    if (window.confirm("¿Seguro que quieres eliminar este archivo?")) {
+      await guardarArchivos(archivosGuardados.filter(a => a.id !== id));
     }
   };
 
-  const actualizarContenidoTest = async (id, nuevoContenido) => {
-    const actualizados = testsGuardados.map(t => t.id === id ? { ...t, contenido: nuevoContenido } : t);
-    await guardarTests(actualizados);
-    setTestActivo(prev => ({ ...prev, contenido: nuevoContenido }));
+  const actualizarContenido = async (id, nuevoContenido) => {
+    const actualizados = archivosGuardados.map(a => a.id === id ? { ...a, contenido: nuevoContenido } : a);
+    await guardarArchivos(actualizados);
+    setArchivoActivo(prev => ({ ...prev, contenido: nuevoContenido }));
   };
 
-  const testsAMostrar = testsGuardados.filter(t => t.carpetaId === carpetaActiva);
-  const nombreCarpetaActiva = carpetaActiva ? carpetas.find(c => c.id === carpetaActiva)?.nombre : "Mis Tests";
+  const archivosAMostrar = archivosGuardados.filter(a => a.carpetaId === carpetaActiva);
+  const nombreCarpetaActiva = carpetaActiva ? carpetas.find(c => c.id === carpetaActiva)?.nombre : "Mi Biblioteca";
 
   // --- MODO VISOR ---
-  if (testActivo) {
+  if (archivoActivo) {
+    const esTest = archivoActivo.nombre.toLowerCase().endsWith('.test');
+    
     return (
       <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', fontFamily: stylesApp.letra }}>
         <div style={{ padding: '10px 20px', background: stylesApp.fondoBody, borderBottom: `1px solid ${stylesApp.borde}`, display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => setTestActivo(null)} style={{ ...xpButton, background: stylesApp.secundario, color: stylesApp.principal, padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
+          <button onClick={() => setArchivoActivo(null)} style={{ ...xpButton, background: stylesApp.secundario, color: stylesApp.principal, padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
             <IcoBack color={stylesApp.principal} /> Volver a {nombreCarpetaActiva}
           </button>
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <TestViewer 
-            nombreArchivo={testActivo.nombre}
-            contenido={testActivo.contenido}
-            onSave={(nuevoJson) => actualizarContenidoTest(testActivo.id, nuevoJson)}
-            colors={stylesApp} 
-          />
+          {esTest ? (
+             <TestViewer 
+                nombreArchivo={archivoActivo.nombre}
+                contenido={archivoActivo.contenido}
+                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
+                colors={stylesApp} 
+             />
+          ) : (
+             <FlashcardViewer 
+                nombreArchivo={archivoActivo.nombre}
+                contenido={archivoActivo.contenido}
+                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
+                colors={stylesApp} 
+             />
+          )}
         </div>
       </div>
     );
@@ -163,7 +198,13 @@ function App() {
           </h1>
         </div>
         
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={crearMazoVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <IcoCards size={14} color={stylesApp.texto} /> Nuevo Mazo
+          </button>
+          <button onClick={crearTestVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <IcoTest size={14} color={stylesApp.texto} /> Nuevo Test
+          </button>
           {!carpetaActiva && (
             <button onClick={crearCarpeta} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <IcoPlus size={14} color={stylesApp.texto} /> Carpeta
@@ -171,7 +212,7 @@ function App() {
           )}
           <label style={{ ...xpButton, background: stylesApp.principal, color: 'white', padding: '7px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
             <IcoPlus size={14} color="white" /> Importar
-            <input type="file" accept=".test,.zip" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
+            <input type="file" accept=".cards,.flash,.test,.zip" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>
       </div>
@@ -180,16 +221,19 @@ function App() {
         
         {cargando && <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: stylesApp.textoApagado }}>Cargando biblioteca...</div>}
         
-        {!cargando && !carpetaActiva && carpetas.length === 0 && testsAMostrar.length === 0 && (
+        {!cargando && !carpetaActiva && carpetas.length === 0 && archivosAMostrar.length === 0 && (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: stylesApp.textoApagado, background: stylesApp.cardBg, borderRadius: '12px', border: `1px solid ${stylesApp.borde}` }}>
-            <IcoStar size={40} color={stylesApp.borde} />
-            <h2 style={{ marginTop: '15px', color: stylesApp.texto }}>Tu biblioteca está vacía</h2>
-            <p>Crea una carpeta o importa archivos .test para empezar.</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
+                <IcoCards size={40} color={stylesApp.borde} />
+                <IcoTest size={40} color={stylesApp.borde} />
+            </div>
+            <h2 style={{ marginTop: '10px', color: stylesApp.texto }}>Tu biblioteca está vacía</h2>
+            <p>Crea un archivo nuevo o importa tus .cards y .test para empezar.</p>
           </div>
         )}
 
         {!cargando && !carpetaActiva && carpetas.map(carpeta => {
-          const cantidadTests = testsGuardados.filter(t => t.carpetaId === carpeta.id).length;
+          const cantidad = archivosGuardados.filter(a => a.carpetaId === carpeta.id).length;
           return (
             <div 
               key={carpeta.id} 
@@ -200,7 +244,7 @@ function App() {
                 <div style={{ color: stylesApp.principal }}><IcoFolder size={28} /></div>
                 <div>
                   <h3 style={{ margin: '0 0 2px 0', color: stylesApp.texto, fontSize: '15px', fontWeight: 'bold' }}>{carpeta.nombre}</h3>
-                  <span style={{ fontSize: '12px', color: stylesApp.textoApagado }}>{cantidadTests} tests</span>
+                  <span style={{ fontSize: '12px', color: stylesApp.textoApagado }}>{cantidad} elementos</span>
                 </div>
               </div>
               <button onClick={(e) => eliminarCarpeta(carpeta.id, e)} style={{ ...xpButton, background: 'transparent', color: stylesApp.danger, padding: '5px', cursor: 'pointer' }}>
@@ -210,29 +254,36 @@ function App() {
           );
         })}
 
-        {!cargando && testsAMostrar.map(test => {
-          let numPreguntas = 0;
-          try { numPreguntas = JSON.parse(test.contenido).preguntas?.length || 0; } catch(e){}
+        {!cargando && archivosAMostrar.map(archivo => {
+          const isTest = archivo.nombre.toLowerCase().endsWith('.test');
+          let conteo = 0;
+          try { 
+              const parseado = JSON.parse(archivo.contenido);
+              conteo = isTest ? (parseado.preguntas?.length || 0) : (parseado.tarjetas?.length || 0);
+          } catch(e){}
 
           return (
             <div 
-              key={test.id} 
-              onClick={() => setTestActivo(test)}
+              key={archivo.id} 
+              onClick={() => setArchivoActivo(archivo)}
               style={{ background: stylesApp.cardBg, padding: '18px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', border: `1px solid ${stylesApp.borde}` }}
             >
               <div style={{ flex: 1 }}>
-                <h3 style={{ margin: '0 0 8px 0', color: stylesApp.texto, fontSize: '15px', fontWeight: 'bold', wordBreak: 'break-word', lineHeight: '1.4' }}>
-                  {test.nombre.replace('.test', '')}
-                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                    {isTest ? <IcoTest size={18} color={stylesApp.principal}/> : <IcoCards size={18} color={stylesApp.principal}/>}
+                    <h3 style={{ margin: 0, color: stylesApp.texto, fontSize: '15px', fontWeight: 'bold', wordBreak: 'break-word', lineHeight: '1.4' }}>
+                    {archivo.nombre.replace('.cards', '').replace('.flash', '').replace('.test', '')}
+                    </h3>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                   <span style={{ fontSize: '11px', color: stylesApp.principal, fontWeight: 'bold', background: stylesApp.secundario, padding: '4px 10px', borderRadius: '8px' }}>
-                    {numPreguntas} preguntas
+                    {conteo} {isTest ? "preguntas" : "tarjetas"}
                   </span>
                   
                   <select 
                     onClick={e => e.stopPropagation()} 
-                    onChange={e => cambiarTestDeCarpeta(test.id, e.target.value, e)}
-                    value={test.carpetaId || "root"}
+                    onChange={e => cambiarArchivoDeCarpeta(archivo.id, e.target.value, e)}
+                    value={archivo.carpetaId || "root"}
                     style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '8px', border: `1px solid ${stylesApp.borde}`, background: stylesApp.fondoBody, color: stylesApp.textoApagado, outline: 'none', cursor: 'pointer', maxWidth: '120px', fontFamily: 'inherit' }}
                   >
                     <option value="root">Mover a Raíz</option>
@@ -242,11 +293,11 @@ function App() {
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${stylesApp.borde}`, paddingTop: '10px' }}>
-                <button onClick={(e) => eliminarTest(test.id, e)} style={{ ...xpButton, background: '#F9F2EB', color: stylesApp.danger, padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+                <button onClick={(e) => eliminarArchivo(archivo.id, e)} style={{ ...xpButton, background: '#F9F2EB', color: stylesApp.danger, padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
                   <IcoTrash size={14} color={stylesApp.danger}/>
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: stylesApp.principal, fontWeight: 'bold', fontSize: '13px' }}>
-                  Abrir <IcoPlay size={14} color={stylesApp.principal} />
+                  {isTest ? 'Probar' : 'Estudiar'} <IcoPlay size={14} color={stylesApp.principal} />
                 </div>
               </div>
             </div>

@@ -280,7 +280,9 @@ const FlashcardViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
                 <div 
                     onClick={() => setVolteada(!volteada)}
                     style={{ 
-                        width: '100%', maxWidth: '500px', height: '320px', cursor: 'pointer',
+                        width: '100%', maxWidth: '500px', 
+                        height: '60vh', minHeight: '380px', maxHeight: '500px', // <-- Altura dinámica
+                        cursor: 'pointer',
                         transformStyle: 'preserve-3d', transition: 'transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1)',
                         transform: volteada ? 'rotateY(180deg)' : 'rotateY(0deg)',
                         position: 'relative'
@@ -291,11 +293,14 @@ const FlashcardViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
                         position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
                         background: 'white', border: `2px solid ${colors.borde}`, borderRadius: '24px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        padding: '40px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
+                        padding: '30px 20px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
                     }}>
-                        <span style={{ position: 'absolute', top: 25, left: 25, fontSize: '12px', fontWeight: '900', color: colors.textoApagado, letterSpacing: '1px' }}>PREGUNTA</span>
-                        <h2 style={{ fontSize: '26px', color: colors.texto, margin: 0, lineHeight: '1.4' }}>{tarjeta?.anverso}</h2>
-                        <div style={{ position: 'absolute', bottom: 25, color: colors.textoApagado, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 'bold' }}>
+                        <span style={{ position: 'absolute', top: 20, left: 20, fontSize: '12px', fontWeight: '900', color: colors.textoApagado, letterSpacing: '1px', zIndex: 2 }}>PREGUNTA</span>
+                        {/* Contenedor scrolleable interno */}
+                        <div style={{ width: '100%', maxHeight: '100%', overflowY: 'auto', padding: '20px 0', boxSizing: 'border-box' }}>
+                            <h2 style={{ fontSize: '20px', color: colors.texto, margin: 0, lineHeight: '1.4' }}>{tarjeta?.anverso}</h2>
+                        </div>
+                        <div style={{ position: 'absolute', bottom: 20, color: colors.textoApagado, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 'bold', zIndex: 2 }}>
                             <IcoFlip size={18} color={colors.textoApagado}/> Toca para girar
                         </div>
                     </div>
@@ -305,11 +310,14 @@ const FlashcardViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
                         position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
                         background: colors.secundario, border: `3px solid ${colors.principal}`, borderRadius: '24px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        padding: '40px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                        padding: '30px 20px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                         transform: 'rotateY(180deg)' 
                     }}>
-                        <span style={{ position: 'absolute', top: 25, left: 25, fontSize: '12px', fontWeight: '900', color: colors.principal, letterSpacing: '1px' }}>RESPUESTA</span>
-                        <h2 style={{ fontSize: '24px', color: colors.texto, margin: 0, lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>{tarjeta?.reverso}</h2>
+                        <span style={{ position: 'absolute', top: 20, left: 20, fontSize: '12px', fontWeight: '900', color: colors.principal, letterSpacing: '1px', zIndex: 2 }}>RESPUESTA</span>
+                        {/* Contenedor scrolleable interno */}
+                        <div style={{ width: '100%', maxHeight: '100%', overflowY: 'auto', padding: '20px 0', boxSizing: 'border-box' }}>
+                            <h2 style={{ fontSize: '18px', color: colors.texto, margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{tarjeta?.reverso}</h2>
+                        </div>
                     </div>
                 </div>
 

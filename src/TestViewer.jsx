@@ -44,7 +44,7 @@ const TestViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
 
     const [checkpoint, setCheckpoint] = useState(contenido);
     const [notificacion, setNotificacion] = useState(null);
-    const [modo, setModo] = useState('quiz'); 
+    const [modo, setModo] = useState('edit'); 
     const [confirmarBorrado, setConfirmarBorrado] = useState(null);
     
     const [idx, setIdx] = useState(0);
@@ -311,7 +311,14 @@ const TestViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
         );
     }
 
-    if (!pregunta) return <div style={{padding: '20px', textAlign: 'center', color: colors.textoApagado}}>No hay preguntas disponibles.</div>;
+    if (!pregunta) return (
+        <div style={{padding: '40px', textAlign: 'center', color: colors.textoApagado, fontFamily: colors.letra, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+            <p style={{ fontSize: '16px', marginBottom: '20px' }}>No hay preguntas disponibles en este test.</p>
+            <button onClick={() => setModo('edit')} style={{ ...xpButton, background: colors.principal, color: 'white', padding: '10px 20px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                <IcoEdit size={16} color="white"/> Volver al Editor
+            </button>
+        </div>
+    );
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'white', color: colors.texto, fontFamily: colors.letra }}>

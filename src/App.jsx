@@ -88,6 +88,7 @@ function App() {
     if (!files.length) return;
     setCargando(true);
     let nuevos = [...archivosGuardados];
+    let ignorados = []; // <-- Añadido para controlar fallos
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -111,11 +112,21 @@ function App() {
           const text = await file.text();
           nuevos.push({ id: 'doc_' + Date.now() + Math.random(), nombre: file.name, contenido: text, carpetaId: carpetaActiva });
         } catch (e) { console.error(e); }
+      } 
+      else {
+        // <-- Si la extensión no coincide, lo guardamos para avisar
+        ignorados.push(file.name);
       }
     }
+    
     await guardarArchivos(nuevos);
     setCargando(false);
     event.target.value = ''; 
+
+    // <-- Mostramos una alerta si algún archivo fue ignorado
+    if (ignorados.length > 0) {
+      alert("Los siguientes archivos no se importaron por no tener una extensión válida (.cards, .test, .zip):\n" + ignorados.join(", "));
+    }
   };
 
   const crearMazoVacio = async () => {
@@ -212,7 +223,7 @@ function App() {
           )}
           <label style={{ ...xpButton, background: stylesApp.principal, color: 'white', padding: '7px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
             <IcoPlus size={14} color="white" /> Importar
-            <input type="file" accept=".cards,.flash,.test,.zip" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
+            <input type="file" accept=".cards,.flash,.test,.zip,*/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>
       </div>

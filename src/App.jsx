@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import TestViewer from './TestViewer';           // <-- Tu visor de Tests
-import FlashcardViewer from './FlashcardViewer'; // <-- Tu visor de Flashcards
+import TestViewer from './TestViewer';           
+import FlashcardViewer from './FlashcardViewer'; 
+import VisorTema from './VisorTema';
+import VisorEsquema from './VisorEsquema'; // <-- AÑADIR
 import JSZip from 'jszip';
 import { get, set } from 'idb-keyval';
 import './App.css';
@@ -14,6 +16,8 @@ const IcoPlay = ({ size = 18, color = "currentColor" }) => <svg width={size} hei
 const IcoBack = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
 const IcoCards = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
 const IcoTest = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 13h6"></path><path d="M9 17h6"></path><path d="M9 9h1"></path></svg>;
+const IcoDoc = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+const IcoMindMap = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="6" rx="1"></rect><path d="M12 8v4"></path><path d="M12 12H6v2"></path><path d="M12 12h6v2"></path><rect x="2" y="14" width="8" height="6" rx="1"></rect><rect x="14" y="14" width="8" height="6" rx="1"></rect></svg>;
 
 function App() {
   const [archivosGuardados, setArchivosGuardados] = useState([]);
@@ -88,7 +92,7 @@ function App() {
     if (!files.length) return;
     setCargando(true);
     let nuevos = [...archivosGuardados];
-    let ignorados = []; // <-- Añadido para controlar fallos
+    let ignorados = []; 
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -100,14 +104,14 @@ function App() {
           const contents = await zip.loadAsync(file);
           for (const [filename, zipEntry] of Object.entries(contents.files)) {
             const zName = filename.toLowerCase();
-            if (!zipEntry.dir && (zName.endsWith('.cards') || zName.endsWith('.flash') || zName.endsWith('.test'))) {
+            if (!zipEntry.dir && (zName.endsWith('.cards') || zName.endsWith('.json') || zName.endsWith('.test') || zName.endsWith('.esquema'))) {
               const content = await zipEntry.async("text");
               nuevos.push({ id: 'doc_' + Date.now() + Math.random(), nombre: filename, contenido: content, carpetaId: carpetaActiva });
             }
           }
         } catch (e) { alert("Error leyendo ZIP."); }
       } 
-      else if (nombreMin.endsWith('.cards') || nombreMin.endsWith('.flash') || nombreMin.endsWith('.test')) {
+      else if (nombreMin.endsWith('.cards') ||  nombreMin.endsWith('.test') || nombreMin.endsWith('.json') || nombreMin.endsWith('.esquema')) {
         try {
           const text = await file.text();
           nuevos.push({ id: 'doc_' + Date.now() + Math.random(), nombre: file.name, contenido: text, carpetaId: carpetaActiva });
@@ -125,7 +129,7 @@ function App() {
 
     // <-- Mostramos una alerta si algún archivo fue ignorado
     if (ignorados.length > 0) {
-      alert("Los siguientes archivos no se importaron por no tener una extensión válida (.cards, .test, .zip):\n" + ignorados.join(", "));
+      alert("Los siguientes archivos no se importaron por no tener una extensión válida (.cards, .test, .esquema, .json, .zip):\n" + ignorados.join(", "));
     }
   };
 
@@ -142,6 +146,33 @@ function App() {
     if (!nombre || !nombre.trim()) return;
     const plantilla = JSON.stringify({ titulo: nombre.trim(), preguntas: [] }, null, 2);
     const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.test', contenido: plantilla, carpetaId: carpetaActiva }];
+    await guardarArchivos(nuevos);
+  };
+
+  const crearTemaVacio = async () => {
+    const nombre = window.prompt("Nombre del nuevo tema:");
+    if (!nombre || !nombre.trim()) return;
+    
+    // Estructura base 
+    const plantilla = JSON.stringify({ 
+      title: nombre.trim(), 
+      contentTree: [] 
+    }, null, 2);
+    
+    const nuevos = [...archivosGuardados, { 
+      id: 'doc_' + Date.now(), 
+      nombre: nombre.trim() + '.json', 
+      contenido: plantilla, 
+      carpetaId: carpetaActiva 
+    }];
+    await guardarArchivos(nuevos);
+  };
+
+  const crearEsquemaVacio = async () => {
+    const nombre = window.prompt("Nombre del nuevo esquema:");
+    if (!nombre || !nombre.trim()) return;
+    const plantilla = JSON.stringify({ titulo: nombre.trim(), nodes: [], edges: [] }, null, 2);
+    const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.esquema', contenido: plantilla, carpetaId: carpetaActiva }];
     await guardarArchivos(nuevos);
   };
 
@@ -164,6 +195,9 @@ function App() {
   // --- MODO VISOR ---
   if (archivoActivo) {
     const esTest = archivoActivo.nombre.toLowerCase().endsWith('.test');
+    const esTema = archivoActivo.nombre.toLowerCase().endsWith('.json');
+    const esEsquema = archivoActivo.nombre.toLowerCase().endsWith('.esquema');
+    
     
     return (
       <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', fontFamily: stylesApp.letra }}>
@@ -179,6 +213,17 @@ function App() {
                 contenido={archivoActivo.contenido}
                 onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
                 colors={stylesApp} 
+             />
+          ) : esTema ? (
+             <VisorTema 
+                contenido={archivoActivo.contenido}
+                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
+             />
+          ) : esEsquema ? (
+             <VisorEsquema 
+                contenido={archivoActivo.contenido}
+                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
+                colors={stylesApp}
              />
           ) : (
              <FlashcardViewer 
@@ -210,12 +255,22 @@ function App() {
         </div>
         
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={crearEsquemaVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <IcoMindMap size={14} color={stylesApp.texto} /> Nuevo Esquema
+          </button>
+
+          <button onClick={crearTemaVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <IcoDoc size={14} color={stylesApp.texto} /> Nuevo Tema
+          </button>
+
           <button onClick={crearMazoVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <IcoCards size={14} color={stylesApp.texto} /> Nuevo Mazo
           </button>
+
           <button onClick={crearTestVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <IcoTest size={14} color={stylesApp.texto} /> Nuevo Test
           </button>
+
           {!carpetaActiva && (
             <button onClick={crearCarpeta} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <IcoPlus size={14} color={stylesApp.texto} /> Carpeta
@@ -223,7 +278,7 @@ function App() {
           )}
           <label style={{ ...xpButton, background: stylesApp.principal, color: 'white', padding: '7px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
             <IcoPlus size={14} color="white" /> Importar
-            <input type="file" accept=".cards,.flash,.test,.zip,*/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
+            <input type="file" accept=".cards,.json,.test, .esquema, .zip,*/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>
       </div>
@@ -266,11 +321,13 @@ function App() {
         })}
 
         {!cargando && archivosAMostrar.map(archivo => {
+          const isEsquema = archivo.nombre.toLowerCase().endsWith('.esquema');
           const isTest = archivo.nombre.toLowerCase().endsWith('.test');
+          const isTema = archivo.nombre.toLowerCase().endsWith('.json');
           let conteo = 0;
           try { 
               const parseado = JSON.parse(archivo.contenido);
-              conteo = isTest ? (parseado.preguntas?.length || 0) : (parseado.tarjetas?.length || 0);
+              conteo = isTest ? (parseado.preguntas?.length || 0) : isTema ? (parseado.contentTree?.length || 0) : isEsquema ? (parseado.nodes?.length || 0) : (parseado.tarjetas?.length || 0);
           } catch(e){}
 
           return (
@@ -281,14 +338,14 @@ function App() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                    {isTest ? <IcoTest size={18} color={stylesApp.principal}/> : <IcoCards size={18} color={stylesApp.principal}/>}
+                    {isTest ? <IcoTest size={18} color={stylesApp.principal}/> : isTema ? <IcoDoc size={18} color={stylesApp.principal}/> : isEsquema ? <IcoMindMap size={18} color={stylesApp.principal}/> : <IcoCards size={18} color={stylesApp.principal}/>}
                     <h3 style={{ margin: 0, color: stylesApp.texto, fontSize: '15px', fontWeight: 'bold', wordBreak: 'break-word', lineHeight: '1.4' }}>
-                    {archivo.nombre.replace('.cards', '').replace('.flash', '').replace('.test', '')}
+                    {archivo.nombre.replace('.cards', '').replace('.json', '').replace('.test', '').replace('.esquema', '')}
                     </h3>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                   <span style={{ fontSize: '11px', color: stylesApp.principal, fontWeight: 'bold', background: stylesApp.secundario, padding: '4px 10px', borderRadius: '8px' }}>
-                    {conteo} {isTest ? "preguntas" : "tarjetas"}
+                    {conteo} {isTest ? "preguntas" : isTema ? "apartados" : isEsquema ? "nodos" : "tarjetas"}
                   </span>
                   
                   <select 
@@ -308,7 +365,7 @@ function App() {
                   <IcoTrash size={14} color={stylesApp.danger}/>
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: stylesApp.principal, fontWeight: 'bold', fontSize: '13px' }}>
-                  {isTest ? 'Probar' : 'Estudiar'} <IcoPlay size={14} color={stylesApp.principal} />
+                  {isTest ? 'Probar' : isTema ? 'Leer' : isEsquema ? 'Diseñar' : 'Estudiar'} <IcoPlay size={14} color={stylesApp.principal} />
                 </div>
               </div>
             </div>

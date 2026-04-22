@@ -66,7 +66,11 @@ function App() {
   const crearCarpeta = async () => {
     const nombre = window.prompt("Nombre de la nueva carpeta:");
     if (!nombre || !nombre.trim()) return;
-    const nuevaCarpeta = { id: 'folder_' + Date.now(), nombre: nombre.trim() };
+    const nuevaCarpeta = { 
+        id: 'folder_' + Date.now(), 
+        nombre: nombre.trim(),
+        parentId: carpetaActiva || null 
+    };
     await guardarCarpetas([...carpetas, nuevaCarpeta]);
   };
 
@@ -200,9 +204,12 @@ function App() {
     
     
     return (
-      <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', fontFamily: stylesApp.letra }}>
+      <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', fontFamily: stylesApp.letra }}>
         <div style={{ padding: '10px 20px', background: stylesApp.fondoBody, borderBottom: `1px solid ${stylesApp.borde}`, display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => setArchivoActivo(null)} style={{ ...xpButton, background: stylesApp.secundario, color: stylesApp.principal, padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
+          <button 
+            onClick={() => setArchivoActivo(null)} 
+            style={{ ...xpButton, background: stylesApp.secundario, color: stylesApp.principal, padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}
+          >
             <IcoBack color={stylesApp.principal} /> Volver a {nombreCarpetaActiva}
           </button>
         </div>
@@ -240,12 +247,19 @@ function App() {
 
   // --- MODO BIBLIOTECA ---
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: stylesApp.fondoBody, display: 'flex', flexDirection: 'column', color: stylesApp.texto, fontFamily: stylesApp.letra }}>
+    <div style={{ width: '100%', minHeight: '100vh', background: stylesApp.fondoBody, display: 'flex', flexDirection: 'column', color: stylesApp.texto, fontFamily: stylesApp.letra }}>
       <div style={{ background: stylesApp.fondoHeader, color: stylesApp.headerText, padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {carpetaActiva && (
-             <button onClick={() => setCarpetaActiva(null)} style={{ background: 'transparent', border: 'none', color: stylesApp.headerText, cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
-               <IcoBack color={stylesApp.headerText} /> Raíz
+          {carpetaActiva !== null && (
+             <button 
+                onClick={() => {
+                    const carpetaActual = carpetas.find(c => c.id === carpetaActiva);
+                    setCarpetaActiva(carpetaActual?.parentId || null);
+                }} 
+                style={{ background: 'transparent', border: 'none', color: stylesApp.headerText, cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
+             >
+               <IcoBack color={stylesApp.headerText} /> 
+               {carpetas.find(c => c.id === carpetaActiva)?.parentId ? 'Atrás' : 'Raíz'}
              </button>
           )}
           <h1 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
@@ -270,12 +284,11 @@ function App() {
           <button onClick={crearTestVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <IcoTest size={14} color={stylesApp.texto} /> Nuevo Test
           </button>
+        
+          <button onClick={crearCarpeta} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <IcoPlus size={14} color={stylesApp.texto} /> Carpeta
+          </button>
 
-          {!carpetaActiva && (
-            <button onClick={crearCarpeta} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <IcoPlus size={14} color={stylesApp.texto} /> Carpeta
-            </button>
-          )}
           <label style={{ ...xpButton, background: stylesApp.principal, color: 'white', padding: '7px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
             <IcoPlus size={14} color="white" /> Importar
             <input type="file" accept=".cards,.json,.test, .esquema, .zip,*/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
@@ -298,7 +311,7 @@ function App() {
           </div>
         )}
 
-        {!cargando && !carpetaActiva && carpetas.map(carpeta => {
+        {!cargando && carpetas.filter(c => (c.parentId || null) === (carpetaActiva || null)).map(carpeta => {
           const cantidad = archivosGuardados.filter(a => a.carpetaId === carpeta.id).length;
           return (
             <div 

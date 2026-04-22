@@ -18,6 +18,7 @@ if (Quill) {
     Quill.register(SizeStyle, true);
 }
 
+const IcoDownload = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
 // --- NOTIFICACIONES ---
 const IcoCheck = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
 const Toast = ({ mensaje, onClear, colors }) => {
@@ -187,7 +188,7 @@ const nodeTypes = { custom: CustomNode };
 // ============================================================
 // COMPONENTE PRINCIPAL
 // ============================================================
-export default function VisorEsquema({ contenido, onSave, colors }) {
+export default function VisorEsquema({ contenido, onSave, colors, nombreArchivo }) {
     const [title, setTitle] = useState("Esquema sin título");
     const [nodes, setNodes] = useState([]);
     const [edges, setEdges] = useState([]);
@@ -242,6 +243,18 @@ export default function VisorEsquema({ contenido, onSave, colors }) {
             data: { shortText: '', keyword: 'Concepto', longContent: '', shape: 'rounded', bgColor: '#ffffff', borderColor: '#E4E7E4', textColor: '#4A4F4A', popupWidth: 320, popupHeight: 220 },
         };
         setNodes((nds) => [...nds, newNode]);
+    };
+
+    const descargarFuente = () => {
+        const esquemaData = { titulo: title, nodes, edges, customColors };
+        const blob = new Blob([JSON.stringify(esquemaData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo || 'esquema_exportado.esquema'; 
+        a.click();
+        URL.revokeObjectURL(url);
+        setNotificacion("Archivo .esquema descargado");
     };
 
     // ============================================================
@@ -474,9 +487,47 @@ export default function VisorEsquema({ contenido, onSave, colors }) {
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                     {!isEditMode && (
-                        <button onClick={exportarPDFPropio} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', border: `1px solid ${colors?.danger || '#fca5a5'}`, background: '#fef2f2', color: colors?.danger || '#ef4444', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}>
-                            <FileText size={16} /> Exportar PDF
-                        </button>
+                        <>
+                            <button 
+                                onClick={descargarFuente} 
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px', 
+                                    padding: '8px 16px', 
+                                    borderRadius: '8px', 
+                                    border: `1px solid ${colors?.borde || '#E4E7E4'}`, 
+                                    background: '#edf2ed', 
+                                    color: colors?.principal || '#6B8E6B', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer', 
+                                    outline: 'none' 
+                                }}
+                            >
+                                <IcoDownload size={16} /> 
+                                {nombreArchivo || 'Descargar Fuente'}
+                            </button>
+
+                            {/* Tu botón original de PDF */}
+                            <button 
+                                onClick={exportarPDFPropio} 
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px', 
+                                    padding: '8px 16px', 
+                                    borderRadius: '8px', 
+                                    border: `1px solid ${colors?.danger || '#fca5a5'}`, 
+                                    background: '#fef2f2', 
+                                    color: colors?.danger || '#ef4444', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer', 
+                                    outline: 'none' 
+                                }}
+                            >
+                                <FileText size={16} /> Exportar PDF
+                            </button>
+                        </>
                     )}
 
                     {isEditMode && (

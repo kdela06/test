@@ -17,6 +17,8 @@ if (Quill) {
 
 // --- ICONOS Y COMPONENTES EXTRAS ---
 const IcoCheck = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+const IcoDownload = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+const xpButton = { border: 'none', cursor: 'pointer', transition: '0.2s', outline: 'none', fontFamily: 'inherit' };
 
 const Toast = ({ mensaje, onClear, colors }) => {
     useEffect(() => {
@@ -128,7 +130,7 @@ const SectionNode = ({ node, level, onChangeNode, onAddChild, onDeleteNode, isEd
 // ============================================================
 // CONTENEDOR PRINCIPAL DEL VISOR 
 // ============================================================
-export default function VisorTema({ contenido, onSave, colors }) {
+export default function VisorTema({ contenido, onSave, colors, nombreArchivo }) {
     const containerRef = useRef(null);
     const [parsedData, setParsedData] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -182,6 +184,17 @@ export default function VisorTema({ contenido, onSave, colors }) {
     };
 
     const handleImageClick = (e) => { if (e.target.tagName === 'IMG') setZoomedImage(e.target.src); };
+
+    const descargarFuente = () => {
+        const blob = new Blob([JSON.stringify(parsedData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo || 'tema_exportado.json'; 
+        a.click();
+        URL.revokeObjectURL(url);
+        setNotificacion("Archivo fuente .json descargado");
+    };
 
     // ============================================================
     // NUEVO EXPORTADOR NATIVO PDF (PDF-LIB)
@@ -309,7 +322,10 @@ export default function VisorTema({ contenido, onSave, colors }) {
             <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px', padding: '15px 30px', position: 'sticky', top: 0, background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(10px)', zIndex: 10, borderBottom: '1px solid #f1f5f9', maxWidth: '1300px', margin: '0 auto' }}>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     
-                    {/* BOTÓN ACTUALIZADO PARA PDF-LIB */}
+                    <button onClick={descargarFuente} 
+                            style={{ ...xpButton, background: '#edf2ed', color: colors.principal, border: `1px solid ${colors.borde}`, borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '13px' }}>
+                        <IcoDownload color={colors.principal}/> Fuente .{nombreArchivo.split('.').pop()}
+                    </button>
                     <button onClick={exportarPDFPropio} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', border: `1px solid ${colors?.danger || '#fca5a5'}`, background: '#fef2f2', color: colors?.danger || '#ef4444', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}>
                         <FileText size={16} /> Exportar PDF
                     </button>

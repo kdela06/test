@@ -10,6 +10,7 @@ const IcoPDF = ({ size = 16, color = "currentColor" }) => <svg width={size} heig
 const IcoCheck = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
 const IcoBrain = ({ size = 48, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>;
 const IcoFlip = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>;
+const IcoDownload = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
 
 const Toast = ({ mensaje, onClear, colors }) => {
     useEffect(() => {
@@ -75,6 +76,17 @@ const FlashcardViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
         setCheckpoint(nuevoContenido);
         setNotificacion("Tarjeta eliminada");
         setConfirmarBorrado(null);
+    };
+
+    const descargarFuente = () => {
+        const blob = new Blob([JSON.stringify(deckData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo || 'mazo_exportado.cards'; 
+        a.click();
+        URL.revokeObjectURL(url);
+        setNotificacion("Archivo .cards descargado");
     };
 
     // --- FUNCIÓN DE EXPORTACIÓN PDF ---
@@ -177,6 +189,10 @@ const FlashcardViewer = ({ contenido, onSave, nombreArchivo, colors }) => {
                         <span style={{ fontSize: '12px', color: colors.textoApagado }}>{deckData.tarjetas.length} tarjetas creadas</span>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={descargarFuente} 
+                                style={{ ...xpButton, background: '#edf2ed', color: colors.principal, border: `1px solid ${colors.borde}`, borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '13px' }}>
+                            <IcoDownload color={colors.principal}/> Fuente .{nombreArchivo.split('.').pop()}
+                        </button>
                         <button onClick={exportarPDFPropio} 
                                 style={{ ...xpButton, background: '#f4ece6', color: colors.danger, border: `1px solid #eadad1`, borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '13px' }}>
                             <IcoPDF color={colors.danger}/> Exportar PDF

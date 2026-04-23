@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import TestViewer from './TestViewer';           
 import FlashcardViewer from './FlashcardViewer'; 
 import VisorTema from './VisorTema';
-import VisorEsquema from './VisorEsquema'; // <-- AÑADIR
+import VisorEsquema from './VisorEsquema'; 
 import JSZip from 'jszip';
 import { get, set } from 'idb-keyval';
 import './App.css';
 
-// --- ICONOS SVG PUROS ---
+// --- ICONOS SVG ---
 const IcoStar = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
 const IcoFolder = ({ size = 24, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
 const IcoPlus = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
@@ -20,7 +20,27 @@ const IcoDoc = ({ size = 20, color = "currentColor" }) => <svg width={size} heig
 const IcoMindMap = ({ size = 20, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="6" rx="1"></rect><path d="M12 8v4"></path><path d="M12 12H6v2"></path><path d="M12 12h6v2"></path><rect x="2" y="14" width="8" height="6" rx="1"></rect><rect x="14" y="14" width="8" height="6" rx="1"></rect></svg>;
 const IcoDownload = ({ size = 18, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
 const IcoZip = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12"></path><path d="M18 7V5"></path><path d="M18 11V9"></path><path d="M18 15V13"></path><path d="M15 15h3a3 3 0 0 1 3 3v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2a3 3 0 0 1 3-3z"></path></svg>;
+const IcoChevronDown = ({ size = 16, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>;
+const IcoWarning = ({ size = 45, color = "currentColor" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+const IcoSiteInfo = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="16" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+  </svg>
+);
 
+const modalOverlayStyle = {
+  position: 'fixed', inset: 0, background: 'rgba(26, 32, 26, 0.85)', 
+  backdropFilter: 'blur(8px)', zIndex: 10000,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+};
+
+const modalStyle = {
+  background: 'white', maxWidth: '440px', width: '100%', 
+  borderRadius: '28px', padding: '35px', textAlign: 'center',
+  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #E4E7E4'
+};
 
 function App() {
   const [archivosGuardados, setArchivosGuardados] = useState([]);
@@ -28,8 +48,10 @@ function App() {
   const [carpetaActiva, setCarpetaActiva] = useState(null); 
   const [archivoActivo, setArchivoActivo] = useState(null);
   const [cargando, setCargando] = useState(true);
+  
+  const [menuNuevoAbierto, setMenuNuevoAbierto] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false); 
 
-  // --- PALETA NEUTRA: VERDE SALVIA Y TONOS TIERRA ---
   const stylesApp = {
     letra: "'Nunito', 'Quicksand', 'Segoe UI', sans-serif", 
     principal: '#6B8E6B',             
@@ -45,20 +67,41 @@ function App() {
   };
 
   useEffect(() => {
+    const handleClickFuera = () => setMenuNuevoAbierto(false);
+    if (menuNuevoAbierto) document.addEventListener('click', handleClickFuera);
+    return () => document.removeEventListener('click', handleClickFuera);
+  }, [menuNuevoAbierto]);
+
+  // Carga inicial de IndexedDB
+  useEffect(() => {
     const cargarDatos = async () => {
       const archivos = await get('mi_biblioteca_unificada') || [];
       const folders = await get('mi_biblioteca_carpetas_unificada') || [];
-      const archivosAdaptados = archivos.map(a => a.carpetaId !== undefined ? a : { ...a, carpetaId: null });
-      setArchivosGuardados(archivosAdaptados);
+      setArchivosGuardados(archivos);
       setCarpetas(folders);
       setCargando(false);
+
+      // Comprobamos si ya aceptó el aviso de guardado
+      if (!localStorage.getItem('aviso_guardado_v4_aceptado')) {
+        setShowWelcome(true);
+      }
     };
     cargarDatos();
   }, []);
 
+  const aceptarAviso = () => {
+    localStorage.setItem('aviso_guardado_v4_aceptado', 'true');
+    setShowWelcome(false);
+  };
+
   const guardarArchivos = async (nuevos) => {
     setArchivosGuardados(nuevos);
     await set('mi_biblioteca_unificada', nuevos);
+  };
+
+  const guardarCarpetas = async (nuevasCarpetas) => {
+    setCarpetas(nuevasCarpetas);
+    await set('mi_biblioteca_carpetas_unificada', nuevasCarpetas);
   };
 
   const descargarArchivoIndividual = (archivo, e) => {
@@ -75,9 +118,7 @@ function App() {
   const descargarBibliotecaZIP = async () => {
     if (archivosGuardados.length === 0) return alert("No hay archivos para descargar.");
     const zip = new JSZip();
-    archivosGuardados.forEach(a => {
-      zip.file(a.nombre, a.contenido);
-    });
+    archivosGuardados.forEach(a => zip.file(a.nombre, a.contenido));
     const content = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(content);
     const link = document.createElement('a');
@@ -87,19 +128,11 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const guardarCarpetas = async (nuevasCarpetas) => {
-    setCarpetas(nuevasCarpetas);
-    await set('mi_biblioteca_carpetas_unificada', nuevasCarpetas);
-  };
-
+  // --- CREACIÓN Y EDICIÓN ---
   const crearCarpeta = async () => {
     const nombre = window.prompt("Nombre de la nueva carpeta:");
     if (!nombre || !nombre.trim()) return;
-    const nuevaCarpeta = { 
-        id: 'folder_' + Date.now(), 
-        nombre: nombre.trim(),
-        parentId: carpetaActiva || null 
-    };
+    const nuevaCarpeta = { id: 'folder_' + Date.now(), nombre: nombre.trim(), parentId: carpetaActiva || null };
     await guardarCarpetas([...carpetas, nuevaCarpeta]);
   };
 
@@ -119,7 +152,6 @@ function App() {
     await guardarArchivos(actualizados);
   };
 
-  // IMPORTACIÓN UNIFICADA
   const handleFileUpload = async (event) => {
     const files = event.target.files;
     if (!files.length) return;
@@ -149,9 +181,7 @@ function App() {
           const text = await file.text();
           nuevos.push({ id: 'doc_' + Date.now() + Math.random(), nombre: file.name, contenido: text, carpetaId: carpetaActiva });
         } catch (e) { console.error(e); }
-      } 
-      else {
-        // <-- Si la extensión no coincide, lo guardamos para avisar
+      } else {
         ignorados.push(file.name);
       }
     }
@@ -159,54 +189,35 @@ function App() {
     await guardarArchivos(nuevos);
     setCargando(false);
     event.target.value = ''; 
-
-    // <-- Mostramos una alerta si algún archivo fue ignorado
-    if (ignorados.length > 0) {
-      alert("Los siguientes archivos no se importaron por no tener una extensión válida (.cards, .test, .esquema, .json, .zip):\n" + ignorados.join(", "));
-    }
+    if (ignorados.length > 0) alert("Los siguientes archivos no se importaron:\n" + ignorados.join(", "));
   };
 
   const crearMazoVacio = async () => {
     const nombre = window.prompt("Nombre del nuevo mazo:");
     if (!nombre || !nombre.trim()) return;
     const plantilla = JSON.stringify({ titulo: nombre.trim(), tarjetas: [] }, null, 2);
-    const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.cards', contenido: plantilla, carpetaId: carpetaActiva }];
-    await guardarArchivos(nuevos);
+    await guardarArchivos([...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.cards', contenido: plantilla, carpetaId: carpetaActiva }]);
   };
 
   const crearTestVacio = async () => {
     const nombre = window.prompt("Nombre del nuevo test:");
     if (!nombre || !nombre.trim()) return;
     const plantilla = JSON.stringify({ titulo: nombre.trim(), preguntas: [] }, null, 2);
-    const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.test', contenido: plantilla, carpetaId: carpetaActiva }];
-    await guardarArchivos(nuevos);
+    await guardarArchivos([...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.test', contenido: plantilla, carpetaId: carpetaActiva }]);
   };
 
   const crearTemaVacio = async () => {
     const nombre = window.prompt("Nombre del nuevo tema:");
     if (!nombre || !nombre.trim()) return;
-    
-    // Estructura base 
-    const plantilla = JSON.stringify({ 
-      title: nombre.trim(), 
-      contentTree: [] 
-    }, null, 2);
-    
-    const nuevos = [...archivosGuardados, { 
-      id: 'doc_' + Date.now(), 
-      nombre: nombre.trim() + '.json', 
-      contenido: plantilla, 
-      carpetaId: carpetaActiva 
-    }];
-    await guardarArchivos(nuevos);
+    const plantilla = JSON.stringify({ title: nombre.trim(), contentTree: [] }, null, 2);
+    await guardarArchivos([...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.json', contenido: plantilla, carpetaId: carpetaActiva }]);
   };
 
   const crearEsquemaVacio = async () => {
     const nombre = window.prompt("Nombre del nuevo esquema:");
     if (!nombre || !nombre.trim()) return;
     const plantilla = JSON.stringify({ titulo: nombre.trim(), nodes: [], edges: [] }, null, 2);
-    const nuevos = [...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.esquema', contenido: plantilla, carpetaId: carpetaActiva }];
-    await guardarArchivos(nuevos);
+    await guardarArchivos([...archivosGuardados, { id: 'doc_' + Date.now(), nombre: nombre.trim() + '.esquema', contenido: plantilla, carpetaId: carpetaActiva }]);
   };
 
   const eliminarArchivo = async (id, e) => {
@@ -225,12 +236,11 @@ function App() {
   const archivosAMostrar = archivosGuardados.filter(a => a.carpetaId === carpetaActiva);
   const nombreCarpetaActiva = carpetaActiva ? carpetas.find(c => c.id === carpetaActiva)?.nombre : "Mi Biblioteca";
 
-  // --- MODO VISOR ---
+  // --- VISTA: VISOR DE ARCHIVOS ---
   if (archivoActivo) {
     const esTest = archivoActivo.nombre.toLowerCase().endsWith('.test');
     const esTema = archivoActivo.nombre.toLowerCase().endsWith('.json');
     const esEsquema = archivoActivo.nombre.toLowerCase().endsWith('.esquema');
-    
     
     return (
       <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: 'white', fontFamily: stylesApp.letra }}>
@@ -244,54 +254,30 @@ function App() {
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {esTest ? (
-             <TestViewer 
-                nombreArchivo={archivoActivo.nombre}
-                contenido={archivoActivo.contenido}
-                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
-                colors={stylesApp} 
-             />
+             <TestViewer nombreArchivo={archivoActivo.nombre} contenido={archivoActivo.contenido} onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)} colors={stylesApp} />
           ) : esTema ? (
-             <VisorTema 
-                nombreArchivo={archivoActivo.nombre}
-                contenido={archivoActivo.contenido}
-                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
-                colors={stylesApp}
-             />
+             <VisorTema nombreArchivo={archivoActivo.nombre} contenido={archivoActivo.contenido} onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)} colors={stylesApp} />
           ) : esEsquema ? (
-             <VisorEsquema 
-                nombreArchivo={archivoActivo.nombre}
-                contenido={archivoActivo.contenido}
-                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
-                colors={stylesApp}
-             />
+             <VisorEsquema nombreArchivo={archivoActivo.nombre} contenido={archivoActivo.contenido} onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)} colors={stylesApp} />
           ) : (
-             <FlashcardViewer 
-                nombreArchivo={archivoActivo.nombre}
-                contenido={archivoActivo.contenido}
-                onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)}
-                colors={stylesApp} 
-             />
+             <FlashcardViewer nombreArchivo={archivoActivo.nombre} contenido={archivoActivo.contenido} onSave={(nuevoJson) => actualizarContenido(archivoActivo.id, nuevoJson)} colors={stylesApp} />
           )}
         </div>
       </div>
     );
   }
 
-  // --- MODO BIBLIOTECA ---
+  // --- VISTA: BIBLIOTECA PRINCIPAL ---
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: stylesApp.fondoBody, display: 'flex', flexDirection: 'column', color: stylesApp.texto, fontFamily: stylesApp.letra }}>
       <div style={{ background: stylesApp.fondoHeader, color: stylesApp.headerText, padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {carpetaActiva !== null && (
              <button 
-                onClick={() => {
-                    const carpetaActual = carpetas.find(c => c.id === carpetaActiva);
-                    setCarpetaActiva(carpetaActual?.parentId || null);
-                }} 
+                onClick={() => setCarpetaActiva(carpetas.find(c => c.id === carpetaActiva)?.parentId || null)} 
                 style={{ background: 'transparent', border: 'none', color: stylesApp.headerText, cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
              >
-               <IcoBack color={stylesApp.headerText} /> 
-               {carpetas.find(c => c.id === carpetaActiva)?.parentId ? 'Atrás' : 'Raíz'}
+               <IcoBack color={stylesApp.headerText} /> {carpetas.find(c => c.id === carpetaActiva)?.parentId ? 'Atrás' : 'Raíz'}
              </button>
           )}
           <h1 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
@@ -300,34 +286,38 @@ function App() {
           </h1>
         </div>
         
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+
           <button onClick={descargarBibliotecaZIP} style={{ ...xpButton, background: '#E8F0E8', color: stylesApp.principal, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <IcoZip size={14} color={stylesApp.principal} /> Backup .ZIP
           </button>
 
-          <button onClick={crearEsquemaVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <IcoMindMap size={14} color={stylesApp.texto} /> Nuevo Esquema
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setMenuNuevoAbierto(!menuNuevoAbierto); }} 
+              style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <IcoPlus size={14} color={stylesApp.texto} /> Nuevo <IcoChevronDown size={12} color={stylesApp.texto} />
+            </button>
 
-          <button onClick={crearTemaVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <IcoDoc size={14} color={stylesApp.texto} /> Nuevo Tema
-          </button>
-
-          <button onClick={crearMazoVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <IcoCards size={14} color={stylesApp.texto} /> Nuevo Mazo
-          </button>
-
-          <button onClick={crearTestVacio} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <IcoTest size={14} color={stylesApp.texto} /> Nuevo Test
-          </button>
-        
-          <button onClick={crearCarpeta} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, border: `1px solid ${stylesApp.borde}`, padding: '6px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <IcoPlus size={14} color={stylesApp.texto} /> Carpeta
-          </button>
+            {menuNuevoAbierto && (
+              <div 
+                style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: `1px solid ${stylesApp.borde}`, padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '160px', zIndex: 100 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button onClick={() => { crearEsquemaVacio(); setMenuNuevoAbierto(false); }} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, padding: '10px', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left' }}><IcoMindMap size={16}/> Esquema</button>
+                <button onClick={() => { crearTemaVacio(); setMenuNuevoAbierto(false); }} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, padding: '10px', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left' }}><IcoDoc size={16}/> Tema</button>
+                <button onClick={() => { crearMazoVacio(); setMenuNuevoAbierto(false); }} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, padding: '10px', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left' }}><IcoCards size={16}/> Mazo Flashcards</button>
+                <button onClick={() => { crearTestVacio(); setMenuNuevoAbierto(false); }} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, padding: '10px', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left' }}><IcoTest size={16}/> Test</button>
+                <div style={{ height: '1px', background: stylesApp.borde, margin: '4px 0' }}></div>
+                <button onClick={() => { crearCarpeta(); setMenuNuevoAbierto(false); }} style={{ ...xpButton, background: 'transparent', color: stylesApp.texto, padding: '10px', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left' }}><IcoFolder size={16}/> Carpeta</button>
+              </div>
+            )}
+          </div>
 
           <label style={{ ...xpButton, background: stylesApp.principal, color: 'white', padding: '7px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
             <IcoPlus size={14} color="white" /> Importar
-            <input type="file" accept=".cards,.json,.test, .esquema, .zip,*/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
+            <input type="file" accept=".cards,.json,.test,.esquema,.zip,*/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>
       </div>
@@ -338,23 +328,17 @@ function App() {
         
         {!cargando && !carpetaActiva && carpetas.length === 0 && archivosAMostrar.length === 0 && (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: stylesApp.textoApagado, background: stylesApp.cardBg, borderRadius: '12px', border: `1px solid ${stylesApp.borde}` }}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
-                <IcoCards size={40} color={stylesApp.borde} />
-                <IcoTest size={40} color={stylesApp.borde} />
-            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}><IcoCards size={40} color={stylesApp.borde} /><IcoTest size={40} color={stylesApp.borde} /></div>
             <h2 style={{ marginTop: '10px', color: stylesApp.texto }}>Tu biblioteca está vacía</h2>
             <p>Crea un archivo nuevo o importa tus .cards y .test para empezar.</p>
           </div>
         )}
 
+        {/* RENDERIZADO DE CARPETAS */}
         {!cargando && carpetas.filter(c => (c.parentId || null) === (carpetaActiva || null)).map(carpeta => {
           const cantidad = archivosGuardados.filter(a => a.carpetaId === carpeta.id).length;
           return (
-            <div 
-              key={carpeta.id} 
-              onClick={() => setCarpetaActiva(carpeta.id)}
-              style={{ background: stylesApp.cardBg, padding: '15px 20px', borderRadius: '12px', boxShadow: '0 2px 5px rgba(0,0,0,0.02)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px solid ${stylesApp.borde}`, transition: '0.2s' }}
-            >
+            <div key={carpeta.id} onClick={() => setCarpetaActiva(carpeta.id)} style={{ background: stylesApp.cardBg, padding: '15px 20px', borderRadius: '12px', boxShadow: '0 2px 5px rgba(0,0,0,0.02)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px solid ${stylesApp.borde}`, transition: '0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ color: stylesApp.principal }}><IcoFolder size={28} /></div>
                 <div>
@@ -362,13 +346,12 @@ function App() {
                   <span style={{ fontSize: '12px', color: stylesApp.textoApagado }}>{cantidad} elementos</span>
                 </div>
               </div>
-              <button onClick={(e) => eliminarCarpeta(carpeta.id, e)} style={{ ...xpButton, background: 'transparent', color: stylesApp.danger, padding: '5px', cursor: 'pointer' }}>
-                <IcoTrash size={16} />
-              </button>
+              <button onClick={(e) => eliminarCarpeta(carpeta.id, e)} style={{ ...xpButton, background: 'transparent', color: stylesApp.danger, padding: '5px', cursor: 'pointer' }}><IcoTrash size={16} /></button>
             </div>
           );
         })}
 
+        {/* RENDERIZADO DE ARCHIVOS */}
         {!cargando && archivosAMostrar.map(archivo => {
           const isEsquema = archivo.nombre.toLowerCase().endsWith('.esquema');
           const isTest = archivo.nombre.toLowerCase().endsWith('.test');
@@ -380,11 +363,7 @@ function App() {
           } catch(e){}
 
           return (
-            <div 
-              key={archivo.id} 
-              onClick={() => setArchivoActivo(archivo)}
-              style={{ background: stylesApp.cardBg, padding: '18px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', border: `1px solid ${stylesApp.borde}` }}
-            >
+            <div key={archivo.id} onClick={() => setArchivoActivo(archivo)} style={{ background: stylesApp.cardBg, padding: '18px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', border: `1px solid ${stylesApp.borde}` }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                     {isTest ? <IcoTest size={18} color={stylesApp.principal}/> : isTema ? <IcoDoc size={18} color={stylesApp.principal}/> : isEsquema ? <IcoMindMap size={18} color={stylesApp.principal}/> : <IcoCards size={18} color={stylesApp.principal}/>}
@@ -396,13 +375,7 @@ function App() {
                   <span style={{ fontSize: '11px', color: stylesApp.principal, fontWeight: 'bold', background: stylesApp.secundario, padding: '4px 10px', borderRadius: '8px' }}>
                     {conteo} {isTest ? "preguntas" : isTema ? "apartados" : isEsquema ? "nodos" : "tarjetas"}
                   </span>
-                  
-                  <select 
-                    onClick={e => e.stopPropagation()} 
-                    onChange={e => cambiarArchivoDeCarpeta(archivo.id, e.target.value, e)}
-                    value={archivo.carpetaId || "root"}
-                    style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '8px', border: `1px solid ${stylesApp.borde}`, background: stylesApp.fondoBody, color: stylesApp.textoApagado, outline: 'none', cursor: 'pointer', maxWidth: '120px', fontFamily: 'inherit' }}
-                  >
+                  <select onClick={e => e.stopPropagation()} onChange={e => cambiarArchivoDeCarpeta(archivo.id, e.target.value, e)} value={archivo.carpetaId || "root"} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '8px', border: `1px solid ${stylesApp.borde}`, background: stylesApp.fondoBody, color: stylesApp.textoApagado, outline: 'none', cursor: 'pointer', maxWidth: '120px', fontFamily: 'inherit' }}>
                     <option value="root">Mover a Raíz</option>
                     {carpetas.map(c => <option key={c.id} value={c.id}>Mover a {c.nombre}</option>)}
                   </select>
@@ -410,9 +383,15 @@ function App() {
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${stylesApp.borde}`, paddingTop: '10px' }}>
-                <button onClick={(e) => eliminarArchivo(archivo.id, e)} style={{ ...xpButton, background: '#F9F2EB', color: stylesApp.danger, padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
-                  <IcoTrash size={14} color={stylesApp.danger}/>
-                </button>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                    <button onClick={(e) => eliminarArchivo(archivo.id, e)} style={{ ...xpButton, background: '#F9F2EB', color: stylesApp.danger, padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+                    <IcoTrash size={14} color={stylesApp.danger}/>
+                    </button>
+                    <button onClick={(e) => descargarArchivoIndividual(archivo, e)} style={{ ...xpButton, background: '#F2F5F2', color: stylesApp.principal, padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+                    <IcoDownload size={14} color={stylesApp.principal}/>
+                    </button>
+                </div>
+                
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: stylesApp.principal, fontWeight: 'bold', fontSize: '13px' }}>
                   {isTest ? 'Probar' : isTema ? 'Leer' : isEsquema ? 'Diseñar' : 'Estudiar'} <IcoPlay size={14} color={stylesApp.principal} />
                 </div>
@@ -421,6 +400,71 @@ function App() {
           );
         })}
       </div>
+
+      {/* MODAL DE ADVERTENCIA SOBRE CONFIGURACIÓN DEL NAVEGADOR */}
+      {showWelcome && (
+        <div style={modalOverlayStyle}>
+          <div style={modalStyle}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+                <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '50%', color: '#d97706' }}>
+                    <IcoWarning size={35} />
+                </div>
+            </div>
+            
+            <h2 style={{ margin: '0 0 15px 0', color: stylesApp.texto, fontSize: '20px', fontWeight: '800' }}>
+                Aviso importante sobre el guardado
+            </h2>
+            
+            <p style={{ color: stylesApp.textoApagado, fontSize: '14.5px', lineHeight: '1.5', marginBottom: '20px', textAlign: 'left' }}>
+              Tus apuntes se guardan de forma automática e instantánea en este navegador, pero <b>desaparecerán si tienes configurada la limpieza automática de cookies al salir.</b>
+            </p>
+            
+            <div style={{ background: '#f8fafc', border: `1px solid ${stylesApp.borde}`, padding: '18px', borderRadius: '14px', textAlign: 'left', marginBottom: '25px' }}>
+              <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: stylesApp.principal, fontSize: '13px', textTransform: 'uppercase' }}>
+                Para evitar perder datos:
+              </p>
+              <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '13.5px', color: stylesApp.texto, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <li>
+                  Haz clic en el icono 
+                  <span style={{ display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', padding: '2px 6px', borderRadius: '12px', margin: '0 4px', verticalAlign: 'middle', border: '1px solid #e2e8f0' }}>
+                    <IcoSiteInfo size={14} color="#475569" />
+                  </span> 
+                  (a la izquierda de la barra de direcciones) y abre <b>Cookies y datos de sitios</b>.
+                </li>
+                <li>Asegúrate de tener marcada la opción <b>"Permitir que el sitio guarde datos"</b>.</li>
+                <li>Verifica que la opción <span style={{ textDecoration: 'line-through', color: stylesApp.danger }}>"Eliminar datos al cerrar ventanas"</span> esté <b>desactivada</b>.</li>
+              </ol>
+            </div>
+
+            <div style={{ color: '#6366f1', fontSize: '13.5px', lineHeight: '1.6', marginBottom: '25px', background: '#eef2ff', padding: '15px', borderRadius: '12px', textAlign: 'left' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Consejo de Seguridad:
+              </div>
+              Acostúmbrate a usar el botón 
+              
+              {/* MINI-BOTÓN ZIP INCRUSTADO EN EL TEXTO */}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#E8F0E8', color: stylesApp.principal, padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold', fontSize: '11px', margin: '0 5px', verticalAlign: 'middle', border: `1px solid ${stylesApp.principal}40` }}>
+                <IcoZip size={12} color={stylesApp.principal} /> Backup .ZIP
+              </span> 
+              
+              para descargar una copia física a tu ordenador o móvil. Si borras el historial, siempre podrás recuperarlo usando el botón 
+              
+              {/* MINI-BOTÓN IMPORTAR INCRUSTADO EN EL TEXTO */}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: stylesApp.principal, color: 'white', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold', fontSize: '11px', margin: '0 5px', verticalAlign: 'middle' }}>
+                <IcoPlus size={12} color="white" /> Importar
+              </span>
+              .
+            </div>
+
+            <button 
+              onClick={aceptarAviso} 
+              style={{ ...xpButton, background: stylesApp.principal, color: 'white', padding: '16px', borderRadius: '12px', width: '100%', fontWeight: 'bold', fontSize: '15px', boxShadow: '0 4px 12px rgba(107, 142, 107, 0.3)' }}
+            >
+              Entendido, mantendré mis datos a salvo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
